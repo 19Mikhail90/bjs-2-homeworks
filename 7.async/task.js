@@ -1,71 +1,116 @@
+
 class AlarmClock {
-    constructor () {
-        this.alarmCollection = [],
-        this.timerId = null
+    constructor(){
+        this.alarmCollection = [];
+        this.timerId = null;
     }
-    addClock(time, callback, id) {
-        if (typeof id === 'undefined') {
-            throw new Error('error text');
-        }
-        else if (typeof this.alarmCollection.find(clock => clock.id === id) !== 'undefined') {
-            return console.error('The Alert already exist.');
-        }
-        return this.alarmCollection.push({id, time, callback});
+
+    getCurrentFormattedTime() {
+        const date = new Date();
+        let hours = date.getHours();
+        if (hours < 10) {
+            hours = "0" + hours
+        };
+        let minutes = date.getMinutes();
+        if (minutes < 10) {
+            minutes = "0" + minutes
+        };
+        return `${hours}:${minutes}`;
     }
-    removeClock (id) {
-        let inputArrLength = this.alarmCollection.length;
-        this.alarmCollection = this.alarmCollection.filter(clock => clock.id !== id);
-        let outputArrLength = this.alarmCollection.length;
-        return outputArrLength < inputArrLength;
-    }
-    getCurrentFormattedTime () {
-        let zeroAdd = (number) => {
-            if (number < 10) {
-                return '0' + number;
-            }
-            return number;
+
+    checkClock(alarm) {
+        if (alarm.time === this.getCurrentFormattedTime()) {
+            alarm.callback();
         }
-        let actualTime = new Date();
-        let minutes = zeroAdd(actualTime.getMinutes());
-        let hours = zeroAdd(actualTime.getHours());
-        return hours + ':' + minutes;
     }
-    start () {
-        let checkClock = (clock) => {
-            let alarm = this.getCurrentFormattedTime();
-            if (clock.time === alarm) {
-                return clock.callback();
-            }
+
+    addClock(time, callback, id = null) {
+        if (id === null) {
+            throw new Error("Передайте идентификатор звонка");
         }
+        if (this.alarmCollection.some((x) => (x.id === id))) {
+            console.log("Такой звонок уже существует");            
+        } else {
+            this.alarmCollection.push({id, time, callback});
+        }
+    };
+
+    removeClock(id) {
+        let index = this.alarmCollection.findIndex((elem) => elem.id === id);   
+        if (index === -1) {
+            return false;
+        }
+        this.alarmCollection.splice(index, 1);
+        return true;
+    }
+
+    start() {
         if (this.timerId === null) {
             this.timerId = setInterval(() => {
-                this.alarmCollection.forEach(clock => checkClock(clock));
-            }, 1000);
+                this.alarmCollection.forEach((x) => {
+                    this.checkClock(x);                    
+                })
+            }, 100);
         }
-        return;
     }
-    stop () {
-        if (this.timerId !== null) {
+
+    stop() {
+        if (this.timerId != null) {
             clearInterval(this.timerId);
-            return this.timerId = null;
+            this.timerId = null;
         }
     }
-    printAlarms () {
-        return this.alarmCollection.forEach(clock => console.log(clock.id + ': ' + clock.time));
+
+    printAlarms(){
+        this.alarmCollection.forEach((x) => {
+            console.log(x.id, " ", x.time);
+        })
     }
-    clearAlarms () {
-        this.stop();
-        return this.alarmCollection = [];
+
+    clearAlarms(){
+        this.alarmCollection.splice(0, this.alarmCollection.length);
+        console.log("все удалены: ");
+        console.table(this.alarmCollection);
     }
 }
 
-//Sample:
+function testCase() {
+    let alarmSet = new AlarmClock;
 
-let PhoneClock = new AlarmClock();
-PhoneClock.addClock('22:55', () => console.log ('New week!'), 1);
-PhoneClock.addClock('22:56', () => console.log ('New week!!!'), 2);
-PhoneClock.removeClock(2);
-PhoneClock.addClock('22:57', () => console.log ('Go sleep'), 3);
-PhoneClock.start();
-PhoneClock.stop();
-PhoneClock.printAlarms();
+    let currentDate = new Date();
+    let hours = currentDate.getHours();
+    if (hours < 10) {hours = "0" + hours};
+    let minutes = currentDate.getMinutes();
+    if (minutes < 10) {minutes = "0" + minutes};
+    
+    alarmSet.addClock(
+        `${hours < 10? "0" + hours: hours}:${minutes < 10? "0" + minutes: minutes}`, () => {
+            console.log("выполнилась несколько раз");
+        }, "alarm_1");
+
+    minutes++;
+
+    alarmSet.addClock(
+        `${hours < 10? "0" + hours: hours}:${minutes < 10? "0" + minutes: minutes}`, () => {
+            console.log("выполнилась один раз, а потом удалилась")        
+            alarmSet.removeClock("alarm_2");
+    }, "alarm_2");
+
+    minutes++;
+
+    alarmSet.addClock(
+        `${hours < 10? "0" + hours: hours}:${minutes < 10? "0" + minutes: minutes}`, () => {
+            console.log("выполнилась один раз, потом остановился интервал, все звонки очистились, и ничего не вывелось");
+            alarmSet.stop();
+            alarmSet.clearAlarms();
+            alarmSet.printAlarms();
+    }, "alarm_3");
+
+    alarmSet.printAlarms();
+    alarmSet.start();
+
+}
+
+testCase();
+
+
