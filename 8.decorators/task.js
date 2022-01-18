@@ -1,75 +1,55 @@
 function cachingDecoratorNew(func) {
-  
   let cache = [];
-
-  function wrapper(...args) {
-    
-    hash = args.join(',');
-
-    console.log(cache);
-    if (hash in cache) {
-      return "Из кэша: " + cache[hash]
-
-    } else if (Object.keys(cache).length > 4) {
-      delete cache[Object.keys(cache)[0]];
-      // else if (cache.length > 4) { 
-      // cache.splice(0, 1);
-      cache[hash]= func(...args);
-      return "Вычисляем: " +  cache[hash];
-
-      
+  return function (...args) {
+    const hash = args.join(':');
+    const idx = cache.findIndex((item) => item.hash === hash)
+    if (idx === -1) {
+      const result = func(...args);
+      cache.push({hash, result});
+      if (cache.length > 5) {
+        cache.shift();
+      }
+      return `Вычисляем: ${result}`;
     } else {
-      cache[hash]= func(...args);
-      console.log(cache);
-      return "Вычисляем: " +  cache[hash];
+      return `Из кэша: ${cache[idx].result}`
     }
   }
-  return wrapper
 }
 
 
 function debounceDecoratorNew(func, ms) {
-  
-  let timeout 
-
-  let flag = false;
-
-  function wrapper(...args) {
-
-    if (!flag) {
-      func(...args)
-      flag = true;
+  let timeout;
+  let isFirst = true;
+  return function (...args) {
+    if (isFirst) {
+      isFirst = false;
+      func.apply(this, args);
     } else {
       clearTimeout(timeout);
-      timeout = setTimeout(() => { 
-        func(...args); 
-        flag = false
-      }, ms);
+      timeout = setTimeout(() => {
+        func.apply(this, args);
+        isFirst = true;
+      }, ms)
     }
   }
-  return wrapper
 }
 
 function debounceDecorator2(func, ms) {
-  
-  let timeout 
-
-  let flag = false;
-
-  wrapper.history = []
-
-  function wrapper(...args) {
-    wrapper.history.push(args)
-    if (!flag) {
-      func(...args)
-      flag = true;
+  let timeout;
+  let isFirst = true;
+  let counter = 0;
+  return function (...args) {
+    if (isFirst) {
+      isFirst = false;
+      func.apply(this, args);
+      counter += 1;
     } else {
       clearTimeout(timeout);
-      timeout = setTimeout(() => { 
-        func(...args); 
-        flag = false
-      }, ms);
+      timeout = setTimeout(() => {
+        func.apply(this, args);
+        counter += 1;
+        isFirst = true;
+      }, ms)
     }
   }
-  return wrapper
 }
